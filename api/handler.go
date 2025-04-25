@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"API_VentasGO/internal/user"
+	"API_VentasGO/internal/sale"
 
 	"github.com/gin-gonic/gin"
 )
@@ -101,25 +102,19 @@ func (h *handler) handleDeleteUser(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// handleCreate handles POST /users
+// handleCreate handles POST /sales
 func (h *handler) handleCreateSale(ctx *gin.Context) {
 	// request payload
-	var req struct {
-		Name     string `json:"name"`
-		Address  string `json:"address"`
-		NickName string `json:"nickname"`
-	}
+	
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	u := &user.User{
-		Name:     req.Name,
-		Address:  req.Address,
-		NickName: req.NickName,
+	u := &sale.Sale{
+		Sale:     req.Sale,
 	}
-	if err := h.userService.Create(u); err != nil {
+	if err := h.saleService.Create(u); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -127,13 +122,13 @@ func (h *handler) handleCreateSale(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, u)
 }
 
-// handleRead handles GET /users/:id
+// handleRead handles GET /sales/:id
 func (h *handler) handleReadSale(ctx *gin.Context) {
 	id := ctx.Param("id")
 
-	u, err := h.userService.Get(id)
+	u, err := h.saleService.Get(id)
 	if err != nil {
-		if errors.Is(err, user.ErrNotFound) {
+		if errors.Is(err, sale.ErrNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -145,20 +140,20 @@ func (h *handler) handleReadSale(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, u)
 }
 
-// handleUpdate handles PUT /users/:id
+// handleUpdate handles PUT /sale/:id
 func (h *handler) handleUpdateSale(ctx *gin.Context) {
-	id := ctx.Param("id")
+	id := ctx.Param("status")
 
 	// bind partial update fields
-	var fields *user.UpdateFields
+	var fields *sale.UpdateFields
 	if err := ctx.ShouldBindJSON(&fields); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	u, err := h.userService.Update(id, fields)
+	u, err := h.saleService.Update(id, field)
 	if err != nil {
-		if errors.Is(err, user.ErrNotFound) {
+		if errors.Is(err, sale.ErrNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -170,12 +165,12 @@ func (h *handler) handleUpdateSale(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, u)
 }
 
-// handleDelete handles DELETE /users/:id
+// handleDelete handles DELETE /sales/:id
 func (h *handler) handleDeleteSale(ctx *gin.Context) {
 	id := ctx.Param("id")
 
-	if err := h.userService.Delete(id); err != nil {
-		if errors.Is(err, user.ErrNotFound) {
+	if err := h.saleService.Delete(id); err != nil {
+		if errors.Is(err, sale.ErrNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
