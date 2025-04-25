@@ -11,12 +11,14 @@ var ErrEmptyID = errors.New("empty sale ID")
 // LocalStorage provides an in-memory implementation for storing sales.
 type LocalStorage struct {
 	m map[string]*Sale
+	metadata Metadata
 }
 
 // NewLocalStorage instantiates a new LocalStorage with an empty map.
 func NewLocalStorage() *LocalStorage {
 	return &LocalStorage{
 		m: map[string]*Sale{},
+		metadata: Metadata,
 	}
 }
 
@@ -30,9 +32,25 @@ func (l *LocalStorage) Set(sale *Sale) error {
 	l.m[sale.ID] = sale
 	return nil
 }
+func (l *LocalStorage) SetMetadata(matadata *Metadata) error {
+	if metadata.ID == "" {
+		return ErrEmptyID
+	}
+
+	l.m[metadata.ID] = sale
+	return nil
+}
 
 // Read retrieves a sale from the local storage by ID.
 // Returns ErrNotFound if the sale is not found.
+func (l *LocalStorage) Read(id string) (*Sale, error) {
+	u, ok := l.m[id]
+	if !ok {
+		return nil, ErrNotFound
+	}
+
+	return u, nil
+}
 func (l *LocalStorage) Read(id string) (*Sale, error) {
 	u, ok := l.m[id]
 	if !ok {
