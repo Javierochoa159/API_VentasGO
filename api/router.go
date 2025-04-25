@@ -21,6 +21,8 @@ func InitRoutes(e *gin.Engine) {
 	e.GET("/users/:id", h.handleRead)
 	e.PATCH("/users/:id", h.handleUpdate)
 	e.DELETE("/users/:id", h.handleDelete)
+	e.POST("/sale", h.handleCreate)
+	e.GET("/sale/:id/:status", h.handleRead)
 
 	e.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
