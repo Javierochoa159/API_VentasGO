@@ -29,6 +29,8 @@ func (s *Service) Create(sale *Sale) error {
 	sale.UpdatedAt = now
 	sale.Version = 1
 
+	s.storage.
+
 	return s.storage.Set(sale)
 }
 
@@ -45,6 +47,7 @@ func (s *Service) Update(id string, sale *UpdateFields) (*Sale, error) {
 	existing, err := s.storage.Read(id)
 	if err != nil {
 		return nil, err
+	
 	}
 
 	if sale.Status != nil {
@@ -66,3 +69,5 @@ func (s *Service) Update(id string, sale *UpdateFields) (*Sale, error) {
 func (s *Service) Delete(id string) error {
 	return s.storage.Delete(id)
 }
+
+
