@@ -1,9 +1,8 @@
 package api
 
 import (
+	"API_VentasGO/internal/user"
 	"net/http"
-	"parte3/internal/sale"
-	"parte3/internal/user"
 
 	"github.com/gin-gonic/gin"
 )
