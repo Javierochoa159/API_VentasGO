@@ -1,9 +1,10 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
+	"API_VentasGO/internal/user"
 	"net/http"
-	"parte3/internal/user"
+
+	"github.com/gin-gonic/gin"
 )
 
 // InitRoutes registers all user CRUD endpoints on the given Gin engine.

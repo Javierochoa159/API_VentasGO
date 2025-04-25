@@ -3,7 +3,8 @@ package api
 import (
 	"errors"
 	"net/http"
-	"parte3/internal/user"
+
+	"API_VentasGO/internal/user"
 
 	"github.com/gin-gonic/gin"
 )
