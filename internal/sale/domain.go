@@ -2,7 +2,7 @@ package sale
 
 import "time"
 
-// User represents a system user with metadata for auditing and versioning.
+// User represents a system sale with metadata for auditing and versioning.
 type Sale struct {
 	ID        string    `json:"id"`
 	UserId    string    `json:"user_id"`
@@ -13,10 +13,8 @@ type Sale struct {
 	Version   int       `json:"version"`
 }
 
-// UpdateFields represents the optional fields for updating a User.
+// UpdateFields represents the optional fields for updating a Sale.
 // A nil pointer means “no change” for that field.
 type UpdateFields struct {
-	Name     *string `json:"name"`
-	Address  *string `json:"address"`
-	NickName *string `json:"nickname"`
+	Status *string `json:"status"`
 }
