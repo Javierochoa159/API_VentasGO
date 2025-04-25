@@ -1,28 +1,36 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
+	"parte3/internal/sale"
 	"parte3/internal/user"
+
+	"github.com/gin-gonic/gin"
 )
 
 // InitRoutes registers all user CRUD endpoints on the given Gin engine.
 // It initializes the storage, service, and handler, then binds each HTTP
 // method and path to the appropriate handler function.
 func InitRoutes(e *gin.Engine) {
-	storage := user.NewLocalStorage()
-	service := user.NewService(storage)
+	userStorage := user.NewLocalStorage()
+	userService := user.NewService(userStorage)
+	saleStorage := sale.NewLocalStorage()
+	saleService := sale.NewService(saleStorage)
 
 	h := handler{
-		userService: service,
+		userService: userService,
+		saleService: saleService,
 	}
 
-	e.POST("/users", h.handleCreate)
-	e.GET("/users/:id", h.handleRead)
-	e.PATCH("/users/:id", h.handleUpdate)
-	e.DELETE("/users/:id", h.handleDelete)
-	e.POST("/sale", h.handleCreate)
-	e.GET("/sale/:id/:status", h.handleRead)
+	e.POST("/users", h.handleCreateUser)
+	e.GET("/users/:id", h.handleReadUser)
+	e.PATCH("/users/:id", h.handleUpdateUser)
+	e.DELETE("/users/:id", h.handleDeleteUser)
+
+	e.POST("/sales", h.handleCreateSale)
+	e.GET("/sales/:id", h.handleReadSale)
+	e.PATCH("/sales/:id", h.handleUpdateSale)
+	e.DELETE("/sales/:id", h.handleDeleteSale)
 
 	e.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
