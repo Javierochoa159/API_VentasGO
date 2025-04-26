@@ -37,11 +37,11 @@ func (s *Service) Update(status string, id string, amount ...float32) (*Metadata
 	}
 
 	switch status {
-	case "Approved":
+	case "approved":
 		s.changeToApproved(id)
-	case "Rejected":
+	case "rejected":
 		s.changeToRejected(id)
-	case "New_sale":
+	case "new_sale":
 		if len(amount) == 0 {
 			return nil, ErrNotValidOperation
 		}
