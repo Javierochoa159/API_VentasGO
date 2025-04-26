@@ -1,6 +1,7 @@
 package sale
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,6 +25,7 @@ func NewService(storage *LocalStorage) *Service {
 // Returns ErrEmptyID if sale.ID is empty.
 func (s *Service) Create(sale *Sale) error {
 	sale.ID = uuid.NewString()
+	sale.Status = "pending"
 	now := time.Now()
 	sale.CreatedAt = now
 	sale.UpdatedAt = now
@@ -44,7 +46,7 @@ func (s *Service) GetUserSales(id string, status string) []*Sale {
 
 		return sales
 	}
-
+	status = strings.ToLower(status)
 	sales := s.storage.ReadSalesByUserAndStatus(id, status)
 
 	return sales
@@ -61,12 +63,12 @@ func (s *Service) Update(id string, sale *UpdateFields) (*Sale, error) {
 
 	}
 
-	if existing.Status != "Pending" {
+	if existing.Status != "pending" {
 		return nil, ErrNotValidOperation
 	}
 
 	if sale.Status != nil {
-		existing.Status = *sale.Status
+		existing.Status = strings.ToLower(*sale.Status)
 	}
 
 	existing.UpdatedAt = time.Now()
