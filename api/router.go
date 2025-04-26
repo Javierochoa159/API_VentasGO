@@ -1,8 +1,9 @@
 package api
 
 import (
-	"API_VentasGO/internal/user"
+	"API_VentasGO/internal/metadata"
 	"API_VentasGO/internal/sale"
+	"API_VentasGO/internal/user"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,10 +17,13 @@ func InitRoutes(e *gin.Engine) {
 	userService := user.NewService(userStorage)
 	saleStorage := sale.NewLocalStorage()
 	saleService := sale.NewService(saleStorage)
+	metadataStorage := metadata.NewLocalStorage()
+	metadataService := metadata.NewService(metadataStorage)
 
 	h := handler{
-		userService: userService,
-		saleService: saleService,
+		userService:     userService,
+		saleService:     saleService,
+		metadataService: metadataService,
 	}
 
 	e.POST("/users", h.handleCreateUser)
@@ -30,7 +34,8 @@ func InitRoutes(e *gin.Engine) {
 	e.POST("/sales", h.handleCreateSale)
 	e.GET("/sales/:id", h.handleReadSale)
 	e.PATCH("/sales/:id", h.handleUpdateSale)
-	e.DELETE("/sales/:id", h.handleDeleteSale)
+
+	e.GET("/sales/:id/:status", h.handleReadSale)
 
 	e.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
