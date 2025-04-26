@@ -4,7 +4,6 @@ import (
 	"API_VentasGO/internal/metadata"
 	"API_VentasGO/internal/sale"
 	"API_VentasGO/internal/user"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,14 +31,7 @@ func InitRoutes(e *gin.Engine) {
 	e.DELETE("/users/:id", h.handleDeleteUser)
 
 	e.POST("/sales", h.handleCreateSale)
-	e.GET("/sales/:id", h.handleReadSale)
+	e.GET("/sales", h.handleReadSale)
 	e.PATCH("/sales/:id", h.handleUpdateSale)
 
-	e.GET("/sales/:id/:status", h.handleReadSale)
-
-	e.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
 }
