@@ -1,9 +1,10 @@
 package main
 
 import (
+	"API_VentasGO/api"
 	"fmt"
+
 	"github.com/gin-gonic/gin"
-	"parte3/api"
 )
 
 func main() {
