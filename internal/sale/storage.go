@@ -11,6 +11,9 @@ var ErrStatusNotFound = errors.New("sale status not found")
 // ErrEmptyID is returned when trying to store a sale with an empty ID.
 var ErrEmptyID = errors.New("empty sale ID")
 
+// ErrInvalidAmoun is returned when trying to store a sale with an empty amount.
+var ErrInvalidAmoun = errors.New("amount equals or lower 0")
+
 // ErrInvalidStatus is returned when the user performs an invalid status.
 var ErrInvalidStatus = errors.New("invalid status")
 
@@ -25,7 +28,7 @@ type LocalStorage struct {
 // NewLocalStorage instantiates a new LocalStorage with an empty map.
 func NewLocalStorage() *LocalStorage {
 	return &LocalStorage{
-		mapSale: map[string]*Sale{},
+		mapSale: make(map[string]*Sale),
 	}
 }
 
