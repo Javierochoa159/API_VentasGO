@@ -29,25 +29,40 @@ func (s *Service) Create(sale *Sale) error {
 	sale.UpdatedAt = now
 	sale.Version = 1
 
-	s.storage.
-
-	return s.storage.Set(sale)
+	return s.storage.SetSale(sale)
 }
 
 // Get retrieves a sale by its ID.
 // Returns ErrNotFound if no user exists with the given ID.
 func (s *Service) Get(id string) (*Sale, error) {
-	return s.storage.Read(id)
+	return s.storage.ReadSale(id)
+}
+
+func (s *Service) GetUserSales(id string, status string) []*Sale {
+	if status == "" {
+		sales := s.storage.ReadSalesByUser(id)
+
+		return sales
+	}
+
+	sales := s.storage.ReadSalesByUserAndStatus(id, status)
+
+	return sales
 }
 
 // Update modifies an existing sale's data.
 // It updates Status, sets UpdatedAt to now and increments Version.
 // Returns ErrNotFound if the sale does not exist, or ErrEmptyID if sale.ID is empty.
+// Returns ErrNotValidOperation if the sale status is invalid for the operation.
 func (s *Service) Update(id string, sale *UpdateFields) (*Sale, error) {
-	existing, err := s.storage.Read(id)
+	existing, err := s.storage.ReadSale(id)
 	if err != nil {
 		return nil, err
-	
+
+	}
+
+	if existing.Status != "Pending" {
+		return nil, ErrNotValidOperation
 	}
 
 	if sale.Status != nil {
@@ -57,17 +72,9 @@ func (s *Service) Update(id string, sale *UpdateFields) (*Sale, error) {
 	existing.UpdatedAt = time.Now()
 	existing.Version++
 
-	if err := s.storage.Set(existing); err != nil {
+	if err := s.storage.SetSale(existing); err != nil {
 		return nil, err
 	}
 
 	return existing, nil
 }
-
-// Delete removes a sale from the system by its ID.
-// Returns ErrNotFound if the sale does not exist.
-func (s *Service) Delete(id string) error {
-	return s.storage.Delete(id)
-}
-
-
