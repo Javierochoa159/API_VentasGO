@@ -1,6 +1,8 @@
 package user
 
-import "errors"
+import (
+	"errors"
+)
 
 // ErrNotFound is returned when a user with the given ID is not found.
 var ErrNotFound = errors.New("user not found")
@@ -16,7 +18,7 @@ type LocalStorage struct {
 // NewLocalStorage instantiates a new LocalStorage with an empty map.
 func NewLocalStorage() *LocalStorage {
 	return &LocalStorage{
-		m: map[string]*User{},
+		m: make(map[string]*User),
 	}
 }
 
@@ -35,6 +37,7 @@ func (l *LocalStorage) Set(user *User) error {
 // Returns ErrNotFound if the user is not found.
 func (l *LocalStorage) Read(id string) (*User, error) {
 	u, ok := l.m[id]
+
 	if !ok {
 		return nil, ErrNotFound
 	}
