@@ -5,69 +5,82 @@ import "errors"
 // ErrNotFound is returned when a sale with the given ID is not found.
 var ErrNotFound = errors.New("sale not found")
 
+// ErrStatusNotFound is returned when a status not found.
+var ErrStatusNotFound = errors.New("sale status not found")
+
 // ErrEmptyID is returned when trying to store a sale with an empty ID.
 var ErrEmptyID = errors.New("empty sale ID")
 
+// ErrInvalidStatus is returned when the user performs an invalid status.
+var ErrInvalidStatus = errors.New("invalid status")
+
+// ErrNo inValidOperation is returned when the user performs an invalid operation.
+var ErrNotValidOperation = errors.New("invalid operation")
+
 // LocalStorage provides an in-memory implementation for storing sales.
 type LocalStorage struct {
-	m map[string]*Sale
-	metadata Metadata
+	mapSale map[string]*Sale
 }
 
 // NewLocalStorage instantiates a new LocalStorage with an empty map.
 func NewLocalStorage() *LocalStorage {
 	return &LocalStorage{
-		m: map[string]*Sale{},
-		metadata: Metadata,
+		mapSale: map[string]*Sale{},
 	}
 }
 
 // Set stores or updates a sale in the local storage.
 // Returns ErrEmptyID if the sale has an empty ID.
-func (l *LocalStorage) Set(sale *Sale) error {
+func (l *LocalStorage) SetSale(sale *Sale) error {
 	if sale.ID == "" {
 		return ErrEmptyID
 	}
 
-	l.m[sale.ID] = sale
-	return nil
-}
-func (l *LocalStorage) SetMetadata(matadata *Metadata) error {
-	if metadata.ID == "" {
-		return ErrEmptyID
-	}
-
-	l.m[metadata.ID] = sale
+	l.mapSale[sale.ID] = sale
 	return nil
 }
 
 // Read retrieves a sale from the local storage by ID.
 // Returns ErrNotFound if the sale is not found.
-func (l *LocalStorage) Read(id string) (*Sale, error) {
-	u, ok := l.m[id]
+func (l *LocalStorage) ReadSale(id string) (*Sale, error) {
+	u, ok := l.mapSale[id]
 	if !ok {
 		return nil, ErrNotFound
 	}
 
 	return u, nil
 }
-func (l *LocalStorage) Read(id string) (*Sale, error) {
-	u, ok := l.m[id]
-	if !ok {
-		return nil, ErrNotFound
+
+func (l *LocalStorage) ReadSalesByUser(id string) []*Sale {
+	var sales []*Sale
+	for _, sale := range l.mapSale {
+		if sale.UserId == id {
+			sales = append(sales, sale)
+		}
 	}
 
-	return u, nil
+	return sales
+}
+
+func (l *LocalStorage) ReadSalesByUserAndStatus(id string, status string) []*Sale {
+	var sales []*Sale
+	for _, sale := range l.mapSale {
+		if sale.UserId == id && sale.Status == status {
+			sales = append(sales, sale)
+		}
+	}
+
+	return sales
 }
 
 // Delete removes a sale from the local storage by ID.
 // Returns ErrNotFound if the sale does not exist.
-func (l *LocalStorage) Delete(id string) error {
-	_, err := l.Read(id)
+func (l *LocalStorage) DeleteSale(id string) error {
+	_, err := l.ReadSale(id)
 	if err != nil {
 		return err
 	}
 
-	delete(l.m, id)
+	delete(l.mapSale, id)
 	return nil
 }
