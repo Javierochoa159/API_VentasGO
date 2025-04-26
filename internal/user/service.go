@@ -1,8 +1,9 @@
 package user
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Service provides high-level user management operations on a LocalStorage backend.
