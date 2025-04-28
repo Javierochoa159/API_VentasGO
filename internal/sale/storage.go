@@ -14,10 +14,13 @@ var ErrStatusNotFound = errors.New("sale status not found")
 var ErrEmptyID = errors.New("empty sale ID")
 
 // ErrInvalidAmoun is returned when trying to store a sale with an empty amount.
-var ErrInvalidAmoun = errors.New("amount equals or lower 0")
+var ErrInvalidAmount = errors.New("amount equals or lower 0")
 
 // ErrInvalidStatus is returned when the user performs an invalid status.
 var ErrInvalidStatus = errors.New("invalid status")
+
+// ErrInvalidStatus2 is returned when the user performs an invalid status.
+var ErrInvalidStatus2 = errors.New("invalid status")
 
 // ErrNo inValidOperation is returned when the user performs an invalid operation.
 var ErrNotValidOperation = errors.New("invalid operation")

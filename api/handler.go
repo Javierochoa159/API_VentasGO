@@ -128,7 +128,7 @@ func (h *handler) handleCreateSale(ctx *gin.Context) {
 		return
 	}
 	if req.Amount <= 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": sale.ErrInvalidAmoun})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": sale.ErrInvalidAmount.Error()})
 		return
 	}
 	sale := &sale.Sale{
@@ -172,7 +172,7 @@ func (h *handler) handleReadSale(ctx *gin.Context) {
 	status := strings.ToLower(ctx.Query("status"))
 
 	if !checkStatus(status) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": sale.ErrInvalidStatus})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": sale.ErrInvalidStatus.Error()})
 		return
 	}
 	_, err := h.userService.Get(id)
@@ -181,13 +181,7 @@ func (h *handler) handleReadSale(ctx *gin.Context) {
 		return
 	}
 
-	m := &metadata.Metadata{
-		Quantity:     0,
-		Approved:     0,
-		Pending:      0,
-		Rejected:     0,
-		Total_amount: float32(0),
-	}
+	m := &metadata.Metadata{}
 
 	for {
 		err := h.metadataService.Create(m, id)
@@ -229,6 +223,11 @@ func (h *handler) handleUpdateSale(ctx *gin.Context) {
 	if err != nil {
 		if errors.Is(err, sale.ErrNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+
+		if errors.Is(err, sale.ErrInvalidStatus2) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 

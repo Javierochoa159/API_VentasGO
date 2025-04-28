@@ -18,11 +18,3 @@ type Sale struct {
 type UpdateFields struct {
 	Status *string `json:"status"`
 }
-
-type Metadata struct {
-	Quantity     int     `json:"quantity"`
-	Approved     int     `json:"approve"`
-	Pending      int     `json:"pending"`
-	Rejected     int     `json:"rejected"`
-	Total_amount float32 `json:"total_amount"`
-}

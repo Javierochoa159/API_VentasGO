@@ -67,6 +67,9 @@ func (s *Service) Update(id string, sale *UpdateFields) (*Sale, error) {
 	}
 
 	if sale.Status != nil {
+		if strings.ToLower(*sale.Status) == "pending" {
+			return nil, ErrInvalidStatus2
+		}
 		existing.Status = strings.ToLower(*sale.Status)
 	}
 
