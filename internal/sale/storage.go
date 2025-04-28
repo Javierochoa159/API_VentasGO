@@ -1,6 +1,8 @@
 package sale
 
-import "errors"
+import (
+	"errors"
+)
 
 // ErrNotFound is returned when a sale with the given ID is not found.
 var ErrNotFound = errors.New("sale not found")
@@ -54,26 +56,58 @@ func (l *LocalStorage) ReadSale(id string) (*Sale, error) {
 	return u, nil
 }
 
-func (l *LocalStorage) ReadSalesByUser(id string) []*Sale {
+func (l *LocalStorage) ReadSalesByUser(id string) ([]*Sale, map[string]float32) {
+	meta := map[string]float32{
+		"quantity":     0,
+		"approved":     0,
+		"pending":      0,
+		"rejected":     0,
+		"total_amount": 0,
+	}
 	var sales []*Sale
 	for _, sale := range l.mapSale {
 		if sale.UserId == id {
 			sales = append(sales, sale)
+			meta["quantity"]++
+			meta["total_amount"] += sale.Amount
+			switch sale.Status {
+			case "approved":
+				meta["approved"]++
+			case "rejected":
+				meta["rejected"]++
+			case "pending":
+				meta["pending"]++
+			}
 		}
 	}
-
-	return sales
+	return sales, meta
 }
 
-func (l *LocalStorage) ReadSalesByUserAndStatus(id string, status string) []*Sale {
+func (l *LocalStorage) ReadSalesByUserAndStatus(id string, status string) ([]*Sale, map[string]float32) {
+	meta := map[string]float32{
+		"quantity":     0,
+		"approved":     0,
+		"pending":      0,
+		"rejected":     0,
+		"total_amount": 0,
+	}
 	var sales []*Sale
 	for _, sale := range l.mapSale {
 		if sale.UserId == id && sale.Status == status {
 			sales = append(sales, sale)
+			meta["quantity"]++
+			meta["total_amount"] += sale.Amount
+			switch sale.Status {
+			case "approved":
+				meta["approved"]++
+			case "rejected":
+				meta["rejected"]++
+			case "pending":
+				meta["pending"]++
+			}
 		}
 	}
-
-	return sales
+	return sales, meta
 }
 
 // Delete removes a sale from the local storage by ID.
