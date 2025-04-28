@@ -1,5 +1,7 @@
 package metadata
 
+import "strings"
+
 // Service provides high-level sale management operations on a LocalStorage backend.
 type Service struct {
 	// storage is the underlying persistence for Sale entities.
@@ -30,25 +32,18 @@ func (s *Service) Create(metadata *Metadata, userId string) error {
 	return nil
 }
 
-func (s *Service) Update(status string, id string, amount ...float32) (*Metadata, error) {
+func (s *Service) Update(status string, id string) (*Metadata, error) {
 	existing, err := s.storage.ReadMetadata(id)
 	if err != nil {
 		return nil, err
 	}
 
+	status = strings.ToLower(status)
 	switch status {
 	case "approved":
 		s.changeToApproved(id)
 	case "rejected":
 		s.changeToRejected(id)
-	case "new_sale":
-		if len(amount) == 0 {
-			return nil, ErrNotValidOperation
-		}
-		if amount[0] == 0 {
-			return nil, ErrNotValidOperation
-		}
-		s.incrementSale(id, amount[0])
 	default:
 		return nil, ErrNotValidOperation
 	}
@@ -57,13 +52,21 @@ func (s *Service) Update(status string, id string, amount ...float32) (*Metadata
 }
 
 func (s *Service) Get(userId string) *Metadata {
-	return s.storage.mapMeta[userId]
+	meta, _ := s.storage.ReadMetadata(userId)
+	return meta
 }
 
-func (s *Service) incrementSale(userId string, totalAmount float32) {
+func (s *Service) IncrementSale(estado string, userId string, totalAmount float32) {
 	s.storage.mapMeta[userId].Quantity++
-	s.storage.mapMeta[userId].Pending++
 	s.storage.mapMeta[userId].Total_amount += totalAmount
+	switch estado {
+	case "approved":
+		s.storage.mapMeta[userId].Approved++
+	case "rejected":
+		s.storage.mapMeta[userId].Rejected++
+	case "pending":
+		s.storage.mapMeta[userId].Pending++
+	}
 }
 
 func (s *Service) changeToApproved(userId string) {
