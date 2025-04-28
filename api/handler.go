@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -41,20 +42,6 @@ func (h *handler) handleCreateUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	m := &metadata.Metadata{
-		Quantity:     0,
-		Approved:     0,
-		Pending:      0,
-		Rejected:     0,
-		Total_amount: float32(0),
-	}
-
-	for {
-		err := h.metadataService.Create(m, u.ID)
-		if err == nil {
-			break
-		}
-	}
 
 	ctx.JSON(http.StatusCreated, u)
 }
@@ -70,7 +57,7 @@ func (h *handler) handleReadUser(ctx *gin.Context) {
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -119,6 +106,16 @@ func (h *handler) handleDeleteUser(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
+func validarUsuario(id string) (int, error) {
+	url := fmt.Sprintf("http://localhost:9090/users/%s", id)
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
 // handleCreate handles POST /sales
 func (h *handler) handleCreateSale(ctx *gin.Context) {
 	// request payload
@@ -138,20 +135,21 @@ func (h *handler) handleCreateSale(ctx *gin.Context) {
 		UserId: req.UserId,
 		Amount: req.Amount,
 	}
-	if _, err := h.userService.Get(sale.UserId); err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+
+	errCode, err := validarUsuario(sale.UserId)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if errCode == http.StatusNotFound {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+		return
+
+	}
+
 	if err := h.saleService.Create(sale); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-	}
-
-	for {
-		_, err := h.metadataService.Update("new_sale", sale.UserId, sale.Amount)
-		if err == nil {
-			break
-		}
 	}
 
 	ctx.JSON(http.StatusCreated, sale)
@@ -173,30 +171,44 @@ func (h *handler) handleReadSale(ctx *gin.Context) {
 	id := ctx.Query("user_id")
 	status := strings.ToLower(ctx.Query("status"))
 
-	_, err := h.userService.Get(id)
-	if errors.Is(err, user.ErrNotFound) {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
 	if !checkStatus(status) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": sale.ErrInvalidStatus})
 		return
 	}
+	_, err := h.userService.Get(id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	sales := h.saleService.GetUserSales(id, status)
+	m := &metadata.Metadata{
+		Quantity:     0,
+		Approved:     0,
+		Pending:      0,
+		Rejected:     0,
+		Total_amount: float32(0),
+	}
 
-	//salesJson, _ := json.Marshal(sales)
-	//fmt.Println("sales: ", salesJson)
+	for {
+		err := h.metadataService.Create(m, id)
+		if err == nil {
+			break
+		}
+	}
 
-	metadata := h.metadataService.Get(id)
-
-	//metadataJson, _ := json.Marshal(metadata)
-	//fmt.Println("metadata: ", metadataJson)
-
+	sales, meta := h.saleService.GetUserSales(id, status)
+	m.Quantity = int(meta["quantity"])
+	m.Approved = int(meta["approved"])
+	m.Rejected = int(meta["rejected"])
+	m.Pending = int(meta["pending"])
+	m.Total_amount = meta["total_amount"]
 	response := SaleResponse{
-		Metadata: metadata,
-		Results:  sales,
+		Metadata: m,
+	}
+	if sales != nil {
+		response.Results = sales
+	} else {
+		response.Results = make([]*sale.Sale, 0)
 	}
 
 	ctx.JSON(http.StatusOK, response)
@@ -220,15 +232,21 @@ func (h *handler) handleUpdateSale(ctx *gin.Context) {
 			return
 		}
 
+		if errors.Is(err, sale.ErrInvalidStatus) {
+			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	for {
 		_, err := h.metadataService.Update(updated_sale.Status, updated_sale.UserId)
-		if err == nil {
-			break
+		if err != nil {
+			continue
 		}
+		break
 	}
 
 	ctx.JSON(http.StatusOK, updated_sale)
