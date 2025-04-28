@@ -1,6 +1,7 @@
 package sale
 
 import (
+	"math/rand"
 	"strings"
 	"time"
 
@@ -25,7 +26,9 @@ func NewService(storage *LocalStorage) *Service {
 // Returns ErrEmptyID if sale.ID is empty.
 func (s *Service) Create(sale *Sale) error {
 	sale.ID = uuid.NewString()
-	sale.Status = "pending"
+	opciones := []string{"approved", "rejected", "pending"}
+	estado := rand.Intn(3)
+	sale.Status = opciones[estado]
 	now := time.Now()
 	sale.CreatedAt = now
 	sale.UpdatedAt = now
@@ -40,16 +43,12 @@ func (s *Service) Get(id string) (*Sale, error) {
 	return s.storage.ReadSale(id)
 }
 
-func (s *Service) GetUserSales(id string, status string) []*Sale {
+func (s *Service) GetUserSales(id string, status string) ([]*Sale, map[string]float32) {
 	if status == "" {
-		sales := s.storage.ReadSalesByUser(id)
-
-		return sales
+		return s.storage.ReadSalesByUser(id)
 	}
 	status = strings.ToLower(status)
-	sales := s.storage.ReadSalesByUserAndStatus(id, status)
-
-	return sales
+	return s.storage.ReadSalesByUserAndStatus(id, status)
 }
 
 // Update modifies an existing sale's data.
@@ -64,7 +63,7 @@ func (s *Service) Update(id string, sale *UpdateFields) (*Sale, error) {
 	}
 
 	if existing.Status != "pending" {
-		return nil, ErrNotValidOperation
+		return nil, ErrInvalidStatus
 	}
 
 	if sale.Status != nil {
