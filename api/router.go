@@ -13,9 +13,9 @@ import (
 // method and path to the appropriate handler function.
 func InitRoutes(e *gin.Engine) {
 	userStorage := user.NewLocalStorage()
-	userService := user.NewService(userStorage)
+	userService := user.NewService(userStorage, nil)
 	saleStorage := sale.NewLocalStorage()
-	saleService := sale.NewService(saleStorage)
+	saleService := sale.NewService(saleStorage, nil)
 	metadataStorage := metadata.NewLocalStorage()
 	metadataService := metadata.NewService(metadataStorage)
 

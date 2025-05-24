@@ -10,6 +10,12 @@ var ErrNotFound = errors.New("user not found")
 // ErrEmptyID is returned when trying to store a user with an empty ID.
 var ErrEmptyID = errors.New("empty user ID")
 
+type Storage interface {
+	Set(user *User) error
+	Read(id string) (*User, error)
+	Delete(id string) error
+}
+
 // LocalStorage provides an in-memory implementation for storing users.
 type LocalStorage struct {
 	m map[string]*User

@@ -22,6 +22,14 @@ var ErrInvalidStatus = errors.New("invalid status")
 // ErrNo inValidOperation is returned when the user performs an invalid operation.
 var ErrNotValidOperation = errors.New("invalid operation")
 
+type Storage interface {
+	SetSale(sale *Sale) error
+	ReadSale(id string) (*Sale, error)
+	ReadSalesByUser(id string) ([]*Sale, map[string]float32)
+	ReadSalesByUserAndStatus(id string, status string) ([]*Sale, map[string]float32)
+	DeleteSale(id string) error
+}
+
 // LocalStorage provides an in-memory implementation for storing sales.
 type LocalStorage struct {
 	mapSale map[string]*Sale

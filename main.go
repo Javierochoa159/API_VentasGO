@@ -14,4 +14,5 @@ func main() {
 	if err := r.Run(":9090"); err != nil {
 		panic(fmt.Errorf("error trying to start server: %v", err))
 	}
+
 }
