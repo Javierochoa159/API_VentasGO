@@ -9,7 +9,8 @@ import (
 
 func TestService_Create(t *testing.T) {
 	type fields struct {
-		storage Storage
+		storage     Storage
+		userService UserService
 	}
 
 	type args struct {
@@ -44,21 +45,22 @@ func TestService_Create(t *testing.T) {
 		{
 			name: "errorUserNotFound",
 			fields: fields{
-				storage: &mockStorageSale{
+				storage: NewLocalStorage(),
+				userService: &mockUserService{
 					mockFindUser: func(id string) error {
-						return errors.New("fake error trying to found user")
+						return errors.New("user not found")
 					},
 				},
 			},
 			args: args{
 				sale: &Sale{
-					UserId: "0",
+					UserId: "1000",
 					Amount: 1500,
 				},
 			},
 			wantErr: func(t *testing.T, err error) {
 				require.NotNil(t, err)
-				require.EqualError(t, err, "fake error trying to found user")
+				require.EqualError(t, err, "user not found")
 			},
 			wantSale: nil,
 		},
@@ -88,7 +90,7 @@ func TestService_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewService(tt.fields.storage, nil)
+			s := NewService(tt.fields.storage, tt.fields.userService, nil)
 
 			err := s.Create(tt.args.sale)
 			if tt.wantErr != nil {
@@ -108,7 +110,6 @@ type mockStorageSale struct {
 	mockDeleteSale               func(id string) error
 	mockReadSalesByUser          func(id string) ([]*Sale, map[string]float32)
 	mockReadSalesByUserAndStatus func(id string, status string) ([]*Sale, map[string]float32)
-	mockFindUser                 func(id string) error
 }
 
 func (m *mockStorageSale) SetSale(sale *Sale) error {
@@ -129,4 +130,15 @@ func (m *mockStorageSale) ReadSalesByUserAndStatus(id string, status string) ([]
 
 func (m *mockStorageSale) DeleteSale(id string) error {
 	return m.mockDeleteSale(id)
+}
+
+type mockUserService struct {
+	mockFindUser func(id string) error
+}
+
+func (m *mockUserService) FindUser(id string) error {
+	if m.mockFindUser != nil {
+		return m.mockFindUser(id)
+	}
+	return nil
 }

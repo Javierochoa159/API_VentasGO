@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 	"API_VentasGO/internal/user"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // handler holds the user service and implements HTTP handlers for user CRUD.
@@ -107,8 +107,8 @@ func (h *handler) handleDeleteUser(ctx *gin.Context) {
 }
 
 func validarUsuario(id string) (int, error) {
-	url := fmt.Sprintf("http://localhost:9090/users/%s", id)
-	resp, err := http.Get(url)
+	resp, err := http.Get("http://localhost:9090/users/" + id)
+
 	if err != nil {
 		return 0, err
 	}
@@ -124,10 +124,12 @@ func (h *handler) handleCreateSale(ctx *gin.Context) {
 		Amount float32 `json:"amount"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		h.saleService.Logger.Error("error", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if req.Amount <= 0 {
+		h.saleService.Logger.Error("error", zap.Error(sale.ErrInvalidAmoun))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": sale.ErrInvalidAmoun})
 		return
 	}
@@ -138,10 +140,12 @@ func (h *handler) handleCreateSale(ctx *gin.Context) {
 
 	errCode, err := validarUsuario(sale.UserId)
 	if err != nil {
+		h.saleService.Logger.Error("error", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if errCode == http.StatusNotFound {
+		h.saleService.Logger.Error("error", zap.Error(errors.New("user not found")))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
 		return
 

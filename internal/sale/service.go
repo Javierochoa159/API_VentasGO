@@ -9,25 +9,32 @@ import (
 	"go.uber.org/zap"
 )
 
+type UserService interface {
+	FindUser(id string) error
+}
+
 // Service provides high-level sale management operations on a LocalStorage backend.
 type Service struct {
 	// storage is the underlying persistence for User entities.
 	storage Storage
 
 	// logger is our observability component to log.
-	logger *zap.Logger
+	Logger *zap.Logger
+
+	userService UserService
 }
 
 // NewService creates a new Service.
-func NewService(storage Storage, logger *zap.Logger) *Service {
+func NewService(storage Storage, userService UserService, logger *zap.Logger) *Service {
 	if logger == nil {
 		logger, _ = zap.NewProduction()
 		defer logger.Sync()
 	}
 
 	return &Service{
-		storage: storage,
-		logger:  logger,
+		storage:     storage,
+		userService: userService,
+		Logger:      logger,
 	}
 }
 
@@ -35,6 +42,12 @@ func NewService(storage Storage, logger *zap.Logger) *Service {
 // It sets CreatedAt and UpdatedAt to the current time and initializes Version to 1.
 // Returns ErrEmptyID if sale.ID is empty.
 func (s *Service) Create(sale *Sale) error {
+	if s.userService != nil {
+		if err := s.userService.FindUser(sale.UserId); err != nil {
+			s.Logger.Error("user not found", zap.Error(err))
+			return err
+		}
+	}
 	sale.ID = uuid.NewString()
 	opciones := []string{"approved", "rejected", "pending"}
 	estado := rand.Intn(3)
@@ -43,9 +56,8 @@ func (s *Service) Create(sale *Sale) error {
 	sale.CreatedAt = now
 	sale.UpdatedAt = now
 	sale.Version = 1
-
 	if err := s.storage.SetSale(sale); err != nil {
-		s.logger.Error("failed to set sale", zap.Error(err), zap.Any("sale", sale))
+		s.Logger.Error("failed to set sale", zap.Error(err), zap.Any("sale", sale))
 		return err
 	}
 

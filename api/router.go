@@ -15,7 +15,7 @@ func InitRoutes(e *gin.Engine) {
 	userStorage := user.NewLocalStorage()
 	userService := user.NewService(userStorage, nil)
 	saleStorage := sale.NewLocalStorage()
-	saleService := sale.NewService(saleStorage, nil)
+	saleService := sale.NewService(saleStorage, nil, nil)
 	metadataStorage := metadata.NewLocalStorage()
 	metadataService := metadata.NewService(metadataStorage)
 
