@@ -25,6 +25,14 @@ var ErrInvalidStatus2 = errors.New("invalid status")
 // ErrNo inValidOperation is returned when the user performs an invalid operation.
 var ErrNotValidOperation = errors.New("invalid operation")
 
+type Storage interface {
+	SetSale(sale *Sale) error
+	ReadSale(id string) (*Sale, error)
+	ReadSalesByUser(id string) ([]*Sale, map[string]float32)
+	ReadSalesByUserAndStatus(id string, status string) ([]*Sale, map[string]float32)
+	DeleteSale(id string) error
+}
+
 // LocalStorage provides an in-memory implementation for storing sales.
 type LocalStorage struct {
 	mapSale map[string]*Sale
@@ -51,12 +59,12 @@ func (l *LocalStorage) SetSale(sale *Sale) error {
 // Read retrieves a sale from the local storage by ID.
 // Returns ErrNotFound if the sale is not found.
 func (l *LocalStorage) ReadSale(id string) (*Sale, error) {
-	u, ok := l.mapSale[id]
+	s, ok := l.mapSale[id]
 	if !ok {
 		return nil, ErrNotFound
 	}
 
-	return u, nil
+	return s, nil
 }
 
 func (l *LocalStorage) ReadSalesByUser(id string) ([]*Sale, map[string]float32) {

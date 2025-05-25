@@ -1,16 +1,18 @@
 package api
 
 import (
-	"errors"
-	"fmt"
-	"net/http"
-	"strings"
-
 	"API_VentasGO/internal/metadata"
 	"API_VentasGO/internal/sale"
 	"API_VentasGO/internal/user"
+	"bytes"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // handler holds the user service and implements HTTP handlers for user CRUD.
@@ -106,14 +108,21 @@ func (h *handler) handleDeleteUser(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func validarUsuario(id string) (int, error) {
-	url := fmt.Sprintf("http://localhost:9090/users/%s", id)
-	resp, err := http.Get(url)
-	if err != nil {
-		return 0, err
+func validarUsuario(id string, engine *gin.Engine) (int, error) {
+	if os.Getenv("MODO") != "testing" {
+		resp, err := http.Get("http://localhost:9090/users/" + id)
+		if err != nil {
+			return 0, err
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode, nil
+	} else {
+		resp, err := http.NewRequest(http.MethodGet, "http://localhost:9090/users/"+id, bytes.NewReader(nil))
+		req := httptest.NewRecorder()
+		engine.ServeHTTP(req, resp)
+		defer resp.Body.Close()
+		return req.Code, err
 	}
-	defer resp.Body.Close()
-	return resp.StatusCode, nil
 }
 
 // handleCreate handles POST /sales
@@ -124,24 +133,43 @@ func (h *handler) handleCreateSale(ctx *gin.Context) {
 		Amount float32 `json:"amount"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		h.saleService.Logger.Error("error", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if req.Amount <= 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": sale.ErrInvalidAmount.Error()})
+		h.saleService.Logger.Error("error", zap.Error(sale.ErrInvalidAmoun))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": sale.ErrInvalidAmoun})
 		return
 	}
 	sale := &sale.Sale{
 		UserId: req.UserId,
 		Amount: req.Amount,
 	}
+	var errCode int
+	var err error
+	if os.Getenv("MODO") == "testing" {
+		engine, exists := ctx.Get("engine")
+		if !exists {
+			ctx.JSON(500, gin.H{"error": "Invalid engine type"})
+		}
 
-	errCode, err := validarUsuario(sale.UserId)
+		eng, ok := engine.(*gin.Engine)
+		if !ok {
+			ctx.JSON(500, gin.H{"error": "Invalid engine type"})
+		}
+		errCode, err = validarUsuario(sale.UserId, eng)
+	} else {
+		errCode, err = validarUsuario(sale.UserId, nil)
+	}
+
 	if err != nil {
+		h.saleService.Logger.Error("error", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if errCode == http.StatusNotFound {
+		h.saleService.Logger.Error("error", zap.Error(errors.New("user not found")))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
 		return
 
@@ -161,7 +189,7 @@ func checkStatus(status string) bool {
 	return ok
 }
 
-// handleRead handles GET /sales/:id
+// handleRead handles GET /sales?user_id
 func (h *handler) handleReadSale(ctx *gin.Context) {
 	type SaleResponse struct {
 		Metadata *metadata.Metadata `json:"metadata"`
@@ -240,13 +268,31 @@ func (h *handler) handleUpdateSale(ctx *gin.Context) {
 		return
 	}
 
-	for {
+	/*for {
 		_, err := h.metadataService.Update(updated_sale.Status, updated_sale.UserId)
 		if err != nil {
 			continue
 		}
 		break
-	}
+	}*/
 
 	ctx.JSON(http.StatusOK, updated_sale)
+}
+
+// handleRead handles GET /sale/:id
+func (h *handler) handleReadOneSale(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	s, err := h.saleService.Get(id)
+	if err != nil {
+		if errors.Is(err, sale.ErrNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, s)
 }
