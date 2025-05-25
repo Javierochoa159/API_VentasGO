@@ -56,12 +56,12 @@ func (l *LocalStorage) SetSale(sale *Sale) error {
 // Read retrieves a sale from the local storage by ID.
 // Returns ErrNotFound if the sale is not found.
 func (l *LocalStorage) ReadSale(id string) (*Sale, error) {
-	u, ok := l.mapSale[id]
+	s, ok := l.mapSale[id]
 	if !ok {
 		return nil, ErrNotFound
 	}
 
-	return u, nil
+	return s, nil
 }
 
 func (l *LocalStorage) ReadSalesByUser(id string) ([]*Sale, map[string]float32) {

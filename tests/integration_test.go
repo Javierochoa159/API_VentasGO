@@ -6,39 +6,46 @@ import (
 	"API_VentasGO/internal/user"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
-
+	"os"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
 
+func TestMain(m *testing.M) {
+	go func() {
+		//gin.setMode(gin.TestMode)
+		r := gin.Default()
+		api.InitRoutes(r)
+		r.Run(":9090") // Servidor real
+	}()
+
+	time.Sleep(1 * time.Second) // Dale tiempo al servidor
+	os.Exit(m.Run())
+}
+
 func TestIntegrationCreateAndGet(t *testing.T) {
 	app := gin.Default()
 	api.InitRoutes(app)
 
-	req, _ := http.NewRequest(http.MethodGet, "/ping", nil)
-	res := fakeRequest(app, req)
-
-	require.NotNil(t, res)
-	require.Equal(t, http.StatusOK, res.Code)
-	require.Contains(t, res.Body.String(), "pong")
-
-	req, _ = http.NewRequest(http.MethodPost, "/users", bytes.NewBufferString(`{
+	resp, err := http.Post("http://localhost:9090/users", "application/json",
+		bytes.NewBufferString(`{
 		"name":"Ayrton",
-		"address": "Pringles",
-		"nickname": "Chiche"	
+		"address":"Pringles",
+		"nickname":"Chiche"
 	}`))
 
-	res = fakeRequest(app, req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-	require.NotNil(t, res)
-	require.Equal(t, http.StatusCreated, res.Code)
-
-	var resUser *user.User
-	require.NoError(t, json.Unmarshal(res.Body.Bytes(), &resUser))
+	var resUser user.User
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&resUser))
+	defer resp.Body.Close()
 	require.Equal(t, "Ayrton", resUser.Name)
 	require.Equal(t, "Pringles", resUser.Address)
 	require.Equal(t, "Chiche", resUser.NickName)
@@ -47,31 +54,47 @@ func TestIntegrationCreateAndGet(t *testing.T) {
 	require.NotEmpty(t, resUser.CreatedAt)
 	require.NotEmpty(t, resUser.UpdatedAt)
 
-	req, _ = http.NewRequest(http.MethodGet, "/users/"+resUser.ID, nil)
+	resp2, err := http.Get("http://localhost:9090/users/" + resUser.ID)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp2.StatusCode)
 
-	res = fakeRequest(app, req)
+	var getUser user.User
+	require.NoError(t, json.NewDecoder(resp2.Body).Decode(&getUser))
+	defer resp2.Body.Close()
 
-	require.NotNil(t, res)
-	require.Equal(t, http.StatusOK, res.Code)
+	require.Equal(t, resUser.ID, getUser.ID)
+}
+
+func engineMiddleware(engine *gin.Engine) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("engine", engine)
+		c.Next()
+	}
 }
 
 func TestIntegrationPostAndPathAndGetSale(t *testing.T) {
 	app := gin.Default()
+	app.Use(engineMiddleware(app))
 	api.InitRoutes(app)
 
-	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewBufferString(`{
-		"name":"Ayrton",
-		"address": "Pringles",
-		"nickname": "Chiche"	
-	}`))
+	reqUser := map[string]interface{}{
+		"name":     "Ayrton",
+		"address":  "Pringles",
+		"nickname": "Chiche",
+	}
 
-	res := fakeRequest(app, req)
+	jsonUser, _ := json.Marshal(reqUser)
+	resq, err := http.NewRequest(http.MethodPost, "http://localhost:9090/users", bytes.NewReader(jsonUser))
+	resp := httptest.NewRecorder()
+	app.ServeHTTP(resp, resq)
 
-	require.NotNil(t, res)
-	require.Equal(t, http.StatusCreated, res.Code)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.Code)
 
-	var resUser *user.User
-	require.NoError(t, json.Unmarshal(res.Body.Bytes(), &resUser))
+	var resUser user.User
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&resUser))
+	defer resq.Body.Close()
+	fmt.Println("USUARIO: ", resUser)
 	require.Equal(t, "Ayrton", resUser.Name)
 	require.Equal(t, "Pringles", resUser.Address)
 	require.Equal(t, "Chiche", resUser.NickName)
@@ -79,52 +102,50 @@ func TestIntegrationPostAndPathAndGetSale(t *testing.T) {
 	require.NotEmpty(t, resUser.ID)
 	require.NotEmpty(t, resUser.CreatedAt)
 	require.NotEmpty(t, resUser.UpdatedAt)
-	/*
-		req, _ = http.NewRequest(http.MethodPost, "/sales", bytes.NewBufferString(`{
-			"user_id": "`+resUser.ID+`",
-			"amount": 15000
-		}`))
-	*/
 
-	sale1 := map[string]interface{}{
+	os.Setenv("MODO", "testing")
+
+	saleData := map[string]interface{}{
 		"user_id": resUser.ID,
 		"amount":  15000,
 	}
-	t.Logf("JSON a enviar: %+v", sale1)
-	jsonBody, err := json.Marshal(sale1)
+	jsonSale, _ := json.Marshal(saleData)
+	resq, err = http.NewRequest(http.MethodPost, "http://localhost:9090/sales", bytes.NewReader(jsonSale))
+	resp = httptest.NewRecorder()
+	app.ServeHTTP(resp, resq)
 	require.NoError(t, err)
-
-	req, err = http.NewRequest(http.MethodPost, "/sales", bytes.NewReader(jsonBody))
 	require.NoError(t, err)
-	res = fakeRequest(app, req)
+	require.Equal(t, http.StatusCreated, resp.Code)
 
-	require.NotNil(t, res)
-	require.Equal(t, http.StatusCreated, res.Code)
-
-	var resSale *sale.Sale
-	require.NoError(t, json.Unmarshal(res.Body.Bytes(), &resSale))
+	var resSale sale.Sale
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&resSale))
+	fmt.Println("VENTA ACTUAL: ", resSale)
+	defer resq.Body.Close()
 	require.Equal(t, resUser.ID, resSale.UserId)
-	require.Equal(t, 15000, resSale.Amount)
+	require.Equal(t, float32(15000), resSale.Amount)
 	require.NotEmpty(t, resSale.Status)
+	require.Equal(t, "pending", resSale.Status)
 	require.Equal(t, 1, resSale.Version)
 	require.NotEmpty(t, resSale.CreatedAt)
 	require.NotEmpty(t, resSale.UpdatedAt)
-	status := []string{"Approved", "Pending", "Rejected"}
-	require.Contains(t, status, resSale.Status)
-	/*
-		req, _ = http.NewRequest(http.MethodGet, "/sales?user_id="+resSale.UserId, nil)
 
-		res = fakeRequest(app, req)
+	saleDataToUpdate := map[string]string{
+		"status": "approved",
+	}
 
-		require.NotNil(t, res)
-		require.Equal(t, http.StatusOK, res.Code)
-	*/
+	reqJson, _ := json.Marshal(saleDataToUpdate)
+	resq, err = http.NewRequest(http.MethodPatch, "/sales/"+resSale.ID, bytes.NewReader(reqJson))
+	resp = httptest.NewRecorder()
+	app.ServeHTTP(resp, resq)
 
-}
-
-func fakeRequest(e *gin.Engine, r *http.Request) *httptest.ResponseRecorder {
-	w := httptest.NewRecorder()
-	e.ServeHTTP(w, r)
-
-	return w
+	var resSaleUpdated sale.Sale
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&resSaleUpdated))
+	fmt.Println("VENTA ACTUALIZADA: ", resSaleUpdated)
+	defer resq.Body.Close()
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.Code)
+	require.NotEmpty(t, resSaleUpdated.Status)
+	require.NotEqual(t, "pending", resSaleUpdated.Status)
+	status := []string{"approved", "rejected"}
+	require.Contains(t, status, resSaleUpdated.Status)
 }

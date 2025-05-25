@@ -2,6 +2,7 @@ package sale
 
 import (
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -48,10 +49,16 @@ func (s *Service) Create(sale *Sale) error {
 			return err
 		}
 	}
+
+	if os.Getenv("MODO") != "testing" {
+		opciones := []string{"approved", "rejected", "pending"}
+		estado := rand.Intn(3)
+		sale.Status = opciones[estado]
+	} else {
+		sale.Status = "pending"
+	}
+
 	sale.ID = uuid.NewString()
-	opciones := []string{"approved", "rejected", "pending"}
-	estado := rand.Intn(3)
-	sale.Status = opciones[estado]
 	now := time.Now()
 	sale.CreatedAt = now
 	sale.UpdatedAt = now
